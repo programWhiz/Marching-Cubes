@@ -8,22 +8,39 @@ namespace MarchingCubesProject
 
     public enum MARCHING_MODE {  CUBES, TETRAHEDRON };
 
+    public enum NOISE_MODE { PERLIN, METABALL, FRACTAL };
+
     public class Example : MonoBehaviour
     {
 
         public Material m_material;
 
         public MARCHING_MODE mode = MARCHING_MODE.CUBES;
+        public NOISE_MODE noiseMode = NOISE_MODE.METABALL;
 
         public int seed = 0;
 
         List<GameObject> meshes = new List<GameObject>();
 
-        void Start()
-        {
+        public float minRadius = 1f;
 
-            INoise perlin = new PerlinNoise(seed, 2.0f);
-            FractalNoise fractal = new FractalNoise(perlin, 3, 1.0f);
+        public float maxRadius = 8f;
+
+        public int minBalls = 2;
+        public int maxBalls = 5;
+
+        void Start() {
+            INoise noise;
+            if (noiseMode == NOISE_MODE.PERLIN) {
+                noise = new PerlinNoise(seed, 2.0f);
+            }
+            else {
+                Bounds bounds = new Bounds();
+                bounds.SetMinMax(Vector3.zero, new Vector3(32, 32, 32));
+                noise = new MetaballNoise(seed, minBalls, maxBalls, minRadius, maxRadius, bounds); 
+            }
+            
+            FractalNoise fractal = new FractalNoise(noise, 3, 1.0f);
 
             //Set the mode used to create the mesh.
             //Cubes is faster and creates less verts, tetrahedrons is slower and creates more verts but better represents the mesh surface.
@@ -58,7 +75,10 @@ namespace MarchingCubesProject
 
                         int idx = x + y * width + z * width * height;
 
-                        voxels[idx] = fractal.Sample3D(fx, fy, fz);
+                        if (noiseMode == NOISE_MODE.PERLIN)
+                            voxels[idx] = fractal.Sample3D(fx, fy, fz);
+                        else
+                            voxels[idx] = noise.Sample3D(x, y, z);
                     }
                 }
             }
@@ -120,5 +140,4 @@ namespace MarchingCubesProject
         }
 
     }
-
 }
